@@ -7,39 +7,39 @@ import (
 //    "fmt"
     "time"
     "net"
+    "bufio"
 )
 
-const (
-    DefaultMaxTimeCommand = 20
+var (
+    DefaultMaxTimeCommand time.Duration = 20 * time.Second
 )
 
 
 type Client struct {
+    network, host string
+    db int
     Conn net.Conn
-    Db int
-    MaxTimeCommand time.Duration
+    maxTimeCommand time.Duration
+    lastIOTime time.Time
 }
-
-type Reply struct{}
 
 //
 // Connect(tcp) to redis server, initialize a new client
 //
 func NewClient(network, host string) (*Client, error) {
-    conn, err := net.Dial(network, host)
-    if err != nil {
-	return nil, err
-    }
     client := &Client{
-	Conn: conn,
-	Db: 0,
-	MaxTimeCommand: DefaultMaxTimeCommand,
+	network: network,
+	host: host,
+	db: 0,
+	maxTimeCommand: DefaultMaxTimeCommand,
     }
     return client, nil
 }
 
 func (client *Client) Close() {
-    client.Conn.Close()
+    if client.Conn != nil {
+	client.Conn.Close()
+    }
 }
 
 func _Timeout(ch chan int, seconds time.Duration){
@@ -47,14 +47,29 @@ func _Timeout(ch chan int, seconds time.Duration){
     ch <- 0
 }
 
+func (client *Client) _Connect() (net.Conn, error){
+    if client.Conn != nil {
+	return client.Conn, nil
+    }
+    conn, err := net.Dial(client.network, client.host)
+    if err != nil {
+	return nil, err
+    }
+    client.Conn = conn
+    return conn, err
+}
+
 func (client *Client) Do(cmd string, args ...interface{}) (*Reply, error) {
-    timeout := client.MaxTimeCommand
+    timeout := client.maxTimeCommand
     if timeout <= 0 {
     	timeout = DefaultMaxTimeCommand
     }
-    client.Conn.SetDeadline(time.Now().Add(time.Second * timeout))
-    client.Conn.Write(_NormalizeCommand(cmd, args))
-    return nil, nil
+    client._Connect()
+    client.Conn.SetDeadline(time.Now().Add( timeout))
+    client.Conn.Write(NormalizeCommand(cmd, args))
+    reader := bufio.NewReader(client.Conn)
+    reply, err := NewReplyFromReader(reader)
+    return reply, err
 }
 
 

@@ -94,7 +94,7 @@ func Array(items []interface{}) []byte {
     return b
 }
 
-func _NormalizeCommand(cmd string, args []interface{}) []byte {
+func NormalizeCommand(cmd string, args []interface{}) []byte {
     var b []byte
     cnt := 1 + len(args)
     b = append(b, '*')
