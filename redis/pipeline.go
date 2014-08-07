@@ -30,3 +30,12 @@ func (client *Client) PipelineCommit() ([]*Variable, error) {
     return va.Array(), err
 }
 
+//
+// 
+func (client *Client) PipelineRollback() ([]*Variable, error) {
+    va, err := client.Do("DISCARD")
+    if err != nil {
+	return nil, err
+    }
+    return va.Array(), err
+}
