@@ -7,6 +7,7 @@ import (
     "time"
     "net"
     "bufio"
+    "strings"
 )
 
 var (
@@ -29,8 +30,18 @@ type Client struct {
     network, host string
     db int
     Conn net.Conn
+    reader *bufio.Reader
     maxTimeCommand time.Duration
     lastIOTime time.Time
+    // pipeline bool
+    // pipelineCmds []*_Cmd
+    // pipelineVars []*Variable
+}
+
+type _Cmd struct {
+    command string
+    args []interface{}
+    va *Variable
 }
 
 //
@@ -69,13 +80,11 @@ func (client *Client) _Connect() (net.Conn, error){
 	return nil, err
     }
     client.Conn = conn
+    client.reader = bufio.NewReader(conn)
     return conn, err
 }
 
-//
-// Send command to redis and get reply
-//
-func (client *Client) Do(cmd string, args ...interface{}) (*Variable, error) {
+func (client *Client) _Send(cmd string, args ...interface{}) error {
     timeout := client.maxTimeCommand
     if timeout <= 0 {
     	timeout = DefaultMaxTimeCommand
@@ -84,11 +93,34 @@ func (client *Client) Do(cmd string, args ...interface{}) (*Variable, error) {
     client.Conn.SetDeadline(time.Now().Add( timeout))
     cmdBytes, err := Command(cmd, args)
     if err != nil {
-	return nil, err
+	return err
     }
     client.Conn.Write(cmdBytes)
-    reader := bufio.NewReader(client.Conn)
+    return nil
+}
+
+//
+// Send command to redis and get reply
+//
+func (client *Client) Do(cmd string, args ...interface{}) (*Variable, error) {
+    cmd = strings.ToUpper(cmd)
+
+    err := client._Send(cmd, args...)
+    if err != nil {
+	return nil, err
+    }
+
+    reader := client.reader
     ra, err := NewVariableFromReader(reader)
+
+    if err == nil {
+	if ra.Type() == TYPE_ERR {
+	    err = Err(ra.String())
+	    panic(err)
+	    return ra, err
+	}
+    }
+    
     return ra, err
 }
 

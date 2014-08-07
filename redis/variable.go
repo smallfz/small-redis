@@ -14,6 +14,13 @@ var (
     delim byte = '\n'
 )
 
+const (
+    TYPE_INT = "int"
+    TYPE_STR = "string"
+    TYPE_ARR = "array"
+    TYPE_ERR = "string_error"
+)
+
 type Variable struct {
     typeCode byte
     data []byte
@@ -22,14 +29,47 @@ type Variable struct {
     nilString bool
 }
 
-func (v *Variable) Integer() int {
-    if v.typeCode == ':' {
-	i, _ := strconv.Atoi(string(v.data))
-	return i
-    }else{
-	i, _ := strconv.Atoi(v.String())
-	return i
+//
+// Get the type name of the variable. 
+//
+// TYPE_INT: integer
+// TYPE_STR: string
+// TYPE_ARR: array
+// TYPE_ERR: string contains redis error message
+//
+func (v *Variable) Type() string {
+    switch v.typeCode {
+    case '+', '$':
+	return TYPE_STR
+    case ':':
+	return TYPE_INT
+    case '*':
+	return TYPE_ARR
+    case '-':
+	return TYPE_ERR
+    default:
+	return ""
     }
+}
+
+//
+// Get integer value of the variable.
+// if the variable contains a string or other, try to parse it to int.
+//
+func (v *Variable) Vtoi() (int, error){
+    if v.typeCode == ':' {
+	return strconv.Atoi(string(v.data))
+    }else{
+	return strconv.Atoi(v.String())
+    }
+}
+
+//
+// Same as Vtoi, just no errors.
+//
+func (v *Variable) Integer() int {
+    i, _ := v.Vtoi()
+    return i
 }
 
 func (v *Variable) Array() []*Variable {
@@ -152,6 +192,13 @@ func NewVariable(item interface{}) (*Variable, error) {
 	va.typeCode = ':'
 	va.data = append(va.data, strconv.FormatUint(uint64(v), 10)...)
 	break
+    case bool:
+	va.typeCode = ':'
+	if v {
+	    va.data = append(va.data, '1')
+	}else{
+	    va.data = append(va.data, '0')
+	}
     case string:
 	va.typeCode = '$'
 	if item == nil {
@@ -277,6 +324,12 @@ func Command(cmd string, args []interface{}) ([]byte, error) {
 	case int, uint:
 	    strArgs[i] = fmt.Sprintf("%d", a)
 	    break
+	case bool:
+	    if a {
+		strArgs[i] = "1"
+	    }else{
+		strArgs[i] = "0"
+	    }
 	default:
 	    strArgs[i] = fmt.Sprintf("%v", a)
 	    break
