@@ -18,8 +18,8 @@ func NewPubSub(network, host string) (*PubSub, error){
     return ps, nil
 }
 
-func (ps *PubSub) Subscribe(channels []string...) (*Variable, error){
-    err := ps.client._Do("SUBSCRIBE", channels...)
+func (ps *PubSub) Subscribe(channels ...interface{}) (*Variable, error){
+    err := ps.client._Send("SUBSCRIBE", channels...)
     if err != nil {
 	return nil, err
     }
