@@ -14,6 +14,17 @@ var (
     DefaultMaxTimeCommand time.Duration = 20 * time.Second
 )
 
+type _Err struct{
+    msg string
+}
+
+func (e *_Err) Error() string{
+    return e.msg
+}
+
+func Err(msg string) (*_Err){
+    return &_Err{msg: msg}
+}
 
 type Client struct {
     network, host string
@@ -59,17 +70,22 @@ func (client *Client) _Connect() (net.Conn, error){
     return conn, err
 }
 
-func (client *Client) Do(cmd string, args ...interface{}) (*Reply, error) {
+func (client *Client) Do(cmd string, args ...interface{}) (*Variable, error) {
     timeout := client.maxTimeCommand
     if timeout <= 0 {
     	timeout = DefaultMaxTimeCommand
     }
     client._Connect()
     client.Conn.SetDeadline(time.Now().Add( timeout))
-    client.Conn.Write(NormalizeCommand(cmd, args))
+    cmdBytes, err := NormalizeCommand(cmd, args)
+    if err != nil {
+	return nil, err
+    }
+    println(string(cmdBytes))
+    client.Conn.Write(cmdBytes)
     reader := bufio.NewReader(client.Conn)
-    reply, err := NewReplyFromReader(reader)
-    return reply, err
+    ra, err := NewVariableFromReader(reader)
+    return ra, err
 }
 
 
