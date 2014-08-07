@@ -4,7 +4,6 @@ package redis
 
 
 import (
-//    "fmt"
     "time"
     "net"
     "bufio"
@@ -35,7 +34,7 @@ type Client struct {
 }
 
 //
-// Connect(tcp) to redis server, initialize a new client
+// Initialize a new redis client
 //
 func NewClient(network, host string) (*Client, error) {
     client := &Client{
@@ -47,6 +46,9 @@ func NewClient(network, host string) (*Client, error) {
     return client, nil
 }
 
+//
+// Close client connection, release all resources
+//
 func (client *Client) Close() {
     if client.Conn != nil {
 	client.Conn.Close()
@@ -70,6 +72,9 @@ func (client *Client) _Connect() (net.Conn, error){
     return conn, err
 }
 
+//
+// Send command to redis and get reply
+//
 func (client *Client) Do(cmd string, args ...interface{}) (*Variable, error) {
     timeout := client.maxTimeCommand
     if timeout <= 0 {
@@ -77,11 +82,10 @@ func (client *Client) Do(cmd string, args ...interface{}) (*Variable, error) {
     }
     client._Connect()
     client.Conn.SetDeadline(time.Now().Add( timeout))
-    cmdBytes, err := NormalizeCommand(cmd, args)
+    cmdBytes, err := Command(cmd, args)
     if err != nil {
 	return nil, err
     }
-    println(string(cmdBytes))
     client.Conn.Write(cmdBytes)
     reader := bufio.NewReader(client.Conn)
     ra, err := NewVariableFromReader(reader)
