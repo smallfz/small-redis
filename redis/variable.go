@@ -22,11 +22,13 @@ type Variable struct {
     nilString bool
 }
 
-func (v *Variable) Integer() (int, error) {
+func (v *Variable) Integer() int {
     if v.typeCode == ':' {
-	return strconv.Atoi(string(v.data))
+	i, _ := strconv.Atoi(string(v.data))
+	return i
     }else{
-	return strconv.Atoi(v.String())
+	i, _ := strconv.Atoi(v.String())
+	return i
     }
 }
 
