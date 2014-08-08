@@ -35,5 +35,24 @@
 		fmt.Fprintf(w, "%v\r\n", v)
     }
 
+### PubSub
+
+	ps, _ := redis.NewPubSub("tcp", "localhost:6379")
+    defer ps.Close()
+
+    ps.Subscribe("test")
+	ch := ps.ListenChan()
+    chT := time.Tick(time.Second * 30)
+
+	forloop:
+    for {
+		select {
+		case msg := <- ch:
+		    fmt.Fprintf(w, "%s: %v\r\n", msg.Type(), msg)
+		case t := <- chT:
+		    fmt.Fprintf(w, "tick: %v", t)
+		    break forloop
+		}
+    }
 
 
