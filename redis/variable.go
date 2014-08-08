@@ -261,6 +261,11 @@ func ReadByCount(reader Reader, count int) ([]byte, error) {
 
 func NewVariableFromReader(reader Reader) (*Variable, error) {
     va := &Variable{}
+    // ta, err := ReadByCount(reader, 1)
+    // if err != nil {
+    // 	return nil, err
+    // }
+    // t := ta[0]
     t, _ := reader.ReadByte()
     switch t {
     case ':', '+', '-':

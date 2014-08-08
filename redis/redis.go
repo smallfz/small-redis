@@ -90,7 +90,7 @@ func (client *Client) _Send(cmd string, args ...interface{}) error {
     	timeout = DefaultMaxTimeCommand
     }
     client._Connect()
-    client.Conn.SetDeadline(time.Now().Add( timeout))
+    // client.Conn.SetDeadline(time.Now().Add( timeout))
     cmdBytes, err := Command(cmd, args)
     if err != nil {
 	return err
