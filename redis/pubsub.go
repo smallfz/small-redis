@@ -71,8 +71,13 @@ func (ps *PubSub) Close() {
 
 type Message struct {
     typeCode string
+    channel string
     message string
     chCount int
+}
+
+func (msg *Message) ChannelName() string {
+    return msg.channel
 }
 
 func (msg *Message) String() string {
@@ -92,10 +97,26 @@ func (ps *PubSub) _Listen(ch chan *Message) {
 	    break
 	}
 	arr := va.Array()
+	var typeCode, chName, message string
+	var chCount int
+	typeCode = arr[0].String()
+	switch typeCode {
+	case MSG_TYPE_SUBSCRIBE, MSG_TYPE_UNSUBSCRIBE:
+	    chName = arr[1].String()
+	    chCount = arr[2].Integer()
+	    break
+	case MSG_TYPE_MESSAGE, MSG_TYPE_PMESSAGE:
+	    chName = arr[1].String()
+	    message = arr[2].String()
+	    break
+	default:
+	    break
+	}
 	ch <- &Message{
-	    typeCode: arr[0].String(),
-	    message: arr[1].String(),
-	    chCount: arr[2].Integer(),
+	    typeCode: typeCode,
+	    channel: chName,
+	    message: message,
+	    chCount: chCount,
 	}
     }
 }
