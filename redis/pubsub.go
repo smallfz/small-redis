@@ -22,6 +22,9 @@ type PubSub struct {
     client *Client
 }
 
+//
+// Create a pub/sub client
+//
 func NewPubSub(network, host string) (*PubSub, error){
     client, err := NewClient(network, host)
     if err != nil {
@@ -80,10 +83,17 @@ func (msg *Message) ChannelName() string {
     return msg.channel
 }
 
+//
+// Get the text content of the message
+//
 func (msg *Message) String() string {
     return msg.message
 }
 
+//
+// Get the type name of the message, 
+// could be one of MSG_TYPE_MESSAGE|MSG_TYPE_PMESSAGE|MSG_TYPE_SUBSCRIBE|MSG_TYPE_UNSUBSCRIBE
+//
 func (msg *Message) Type() string {
     return msg.typeCode
 }
@@ -121,6 +131,9 @@ func (ps *PubSub) _Listen(ch chan *Message) {
     }
 }
 
+//
+// Receive messages from subscriptions, 
+// returns a channel which can be used to read the receiving messages.
 func (ps *PubSub) ListenChan() (chan *Message) {
     ch := make(chan *Message)
     go ps._Listen(ch)

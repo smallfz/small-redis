@@ -72,6 +72,9 @@ func (v *Variable) Integer() int {
     return i
 }
 
+//
+// Returns elements of the array variable
+//
 func (v *Variable) Array() []*Variable {
     if v.nilArray {
 	return nil
@@ -79,6 +82,11 @@ func (v *Variable) Array() []*Variable {
     return v.items
 }
 
+//
+// Returns a string array.
+// If the variable itself is array type, converts its elements to string and group them to array, 
+// otherwise returns an array with just one string element which was converted from itself.
+//
 func (v *Variable) StringArray() []string {
     switch v.typeCode {
     case '+', '-', ':', '$':
