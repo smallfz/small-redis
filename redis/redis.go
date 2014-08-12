@@ -8,10 +8,15 @@ import (
     "net"
     "bufio"
     "strings"
+    "net/url"
+    "regexp"
+    "strconv"
+    "fmt"
 )
 
 var (
     DefaultMaxTimeCommand time.Duration = 20 * time.Second
+    DefaultRedisServerPort = 6379
 )
 
 type _Err struct{
@@ -58,17 +63,61 @@ func NewClient(network, host string) (*Client, error) {
 }
 
 //
+// Initialize a new redis client from an URL.
+// eg. "redis://localhost:6379/0"
+//
+func NewClientFromUrl(hostUrl string) (*Client, error) {
+    _url, err := url.Parse(hostUrl)
+    if err != nil {
+	return nil, err
+    }
+
+    var db, port int
+
+    ptPath := regexp.MustCompile("^\\/(\\d+)$")
+    parts := ptPath.FindStringSubmatch(_url.Path)
+    if parts == nil {
+	db = 0
+    }else{
+	_db, err := strconv.Atoi(parts[1])
+	if err == nil {
+	    db = _db
+	}
+    }
+
+    ptPort := regexp.MustCompile("\\:(\\d+)$")
+    parts = ptPort.FindStringSubmatch(_url.Host)
+    var hostStr string
+    if parts == nil {
+	// port not specified. 
+	scheme := strings.ToLower(_url.Scheme)
+	if scheme == "redis" {
+	    port = DefaultRedisServerPort
+	    hostStr = fmt.Sprintf("%s:%d", _url.Host, port)
+	}else{
+	    _errMsg := fmt.Sprintf("Protocol %s not supported.", scheme)
+	    return nil, Err(_errMsg)
+	}
+    }else{
+	hostStr = _url.Host
+    }
+    rc, err := NewClient("tcp", hostStr)
+    if err != nil {
+	return nil, err
+    }
+    if db != 0 {
+	rc.Select(db)
+    }
+    return rc, nil
+}
+
+//
 // Close client connection, release all resources
 //
 func (client *Client) Close() {
     if client.Conn != nil {
 	client.Conn.Close()
     }
-}
-
-func _Timeout(ch chan int, seconds time.Duration){
-    time.Sleep(seconds * time.Second)
-    ch <- 0
 }
 
 func (client *Client) _Connect() (net.Conn, error){
@@ -122,6 +171,10 @@ func (client *Client) Do(cmd string, args ...interface{}) (*Variable, error) {
     }
     
     return ra, err
+}
+
+func (client *Client) Select(db int) {
+    client.Do("SELECT", db)
 }
 
 

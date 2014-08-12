@@ -72,6 +72,10 @@ func (v *Variable) Integer() int {
     return i
 }
 
+func (v *Variable) Bool() bool {
+    return v.Integer() != 0
+}
+
 //
 // Returns elements of the array variable
 //
@@ -103,6 +107,9 @@ func (v *Variable) StringArray() []string {
 }
 
 func (v *Variable) String() string {
+    if v == nil {
+	return "<nil>"
+    }
     if v.nilString {
 	return ""
     }
@@ -257,7 +264,8 @@ type Reader interface {
 func ReadByCount(reader Reader, count int) ([]byte, error) {
     var all []byte
     for len(all) < count {
-	b := make([]byte, count)
+	restCnt := count - len(all)
+	b := make([]byte, restCnt)
 	n, err := reader.Read(b)
 	if err != nil {
 	    return all, err
@@ -268,29 +276,30 @@ func ReadByCount(reader Reader, count int) ([]byte, error) {
 }
 
 func NewVariableFromReader(reader Reader) (*Variable, error) {
+    tb, err := reader.ReadByte()
+    if err != nil {
+    	return nil, err
+    }
     va := &Variable{}
-    // ta, err := ReadByCount(reader, 1)
-    // if err != nil {
-    // 	return nil, err
-    // }
-    // t := ta[0]
-    t, _ := reader.ReadByte()
-    switch t {
+    switch tb {
     case ':', '+', '-':
 	line, err := reader.ReadBytes(delim)
 	if err != nil {
 	    return nil, err
 	}
-	va.typeCode = t
+	va.typeCode = tb
 	va.data = line[:len(line)-2]
 	break
     case '$':
-	va.typeCode = t
+	va.typeCode = tb
 	line, err := reader.ReadBytes(delim)
 	if err != nil {
 	    return nil, err
 	}
-	strLen, _ := strconv.Atoi(string(line[:len(line)-2]))
+	strLen, err := strconv.Atoi(string(line[:len(line)-2]))
+	if err != nil {
+	    return nil, err
+	}
 	if strLen >= 0 {
 	    b, err := ReadByCount(reader, strLen + 2)
 	    if err != nil {
@@ -310,7 +319,10 @@ func NewVariableFromReader(reader Reader) (*Variable, error) {
 	va.typeCode = '*'
 	if arrLen >= 0 {
 	    for i:=0; i<arrLen; i+=1 {
-		subVa, _ := NewVariableFromReader(reader)
+		subVa, err := NewVariableFromReader(reader)
+		if err != nil {
+		    return nil, err
+		}
 		va.items = append(va.items, subVa)
 	    }
 	}else{
@@ -318,7 +330,8 @@ func NewVariableFromReader(reader Reader) (*Variable, error) {
 	}
 	break
     default:
-	return nil, Err("Invalid leading byte for typeCode.")
+	errMsg := fmt.Sprintf("Invalid leading byte for typeCode(%v).", tb)
+	return nil, Err(errMsg)
     }
     return va, nil
 }
