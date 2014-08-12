@@ -141,10 +141,13 @@ func (ps *PubSub) ListenChan() (chan *Message) {
 }
 
 //
-// Listen to channel(s). Handle reply messages with the function.
-// Stop listening once the function returns a false.
+type MessageHandler func(*Message)(bool);
+
 //
-func (ps *PubSub) ListenFunc(handler func(*Message)(bool)) {
+// Listen to channel(s). Handle reply messages with a function.
+// Stop listening if the function returns false.
+//
+func (ps *PubSub) ListenFunc(handler MessageHandler) {
     if handler == nil {
 	return
     }
