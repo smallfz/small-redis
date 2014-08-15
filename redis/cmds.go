@@ -31,3 +31,4 @@ func (client *Client) Del(keys ...string) int {
     v, _ := client.Do("DEL", args...)
     return v.Integer()
 }
+

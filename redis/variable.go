@@ -52,6 +52,18 @@ func (v *Variable) Type() string {
     }
 }
 
+func (v *Variable) IsArray() bool {
+    return v.Type() == TYPE_ARR
+}
+
+func (v *Variable) IsInteger() bool {
+    return v.Type() == TYPE_INT
+}
+
+func (v *Variable) IsNil() bool {
+    return v.nilString || v.nilArray
+}
+
 //
 // Get integer value of the variable.
 // if the variable contains a string or other, try to parse it to int.
